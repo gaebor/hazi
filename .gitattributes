@@ -1,0 +1,4 @@
+*       text eol=lf
+*.pkl   binary
+*.deb   binary
+*.cmd   text eol=crlf

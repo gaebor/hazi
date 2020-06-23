@@ -1,0 +1,42 @@
+#!/usr/bin/python3
+import traceback
+
+try:
+    import os, glob, subprocess, sys, json, shutil
+    from html import escape as htmlescape
+    from auxiliary import run
+    
+    exercisename = sys.argv[1]
+    os.chdir("/HW/" + exercisename)
+    with open("manifest.json", "r", encoding="utf8") as f:
+        manifest=json.load(f)
+    
+    try:
+        sys.path.insert(1, "/HW/" + exercisename)
+        from test import _eval
+    except:
+        def _eval(_reference_text, _submitted_text):
+            return 1 if _reference_text.strip() == _submitted_text.strip() else 0
+    try:
+        submission = open("/home/dummy/" + exercisename + ".txt", "r", encoding="utf8").read()
+    except Exception as e:
+        print("<pre class=stderr>", htmlescape(str(e)), "</pre>", sep='')
+        sys.exit(0)
+    print("<h2>", "Your submission", "</h2>", sep='')
+    print("<pre class=stdin>", htmlescape(submission), "</pre>", sep='')
+    try:
+        solution = open("solution.txt", "r", encoding="utf8").read()
+    except:
+        solution = ""
+        
+    try:
+        points = _eval(solution, submission)
+        sys.exit(points)
+    except Exception as e:
+        print("<pre class=stderr>", htmlescape(str(e)), "</pre>", sep='')
+        sys.exit(0)
+
+except Exception as e:
+    print("<p><span class=orange>Server error!</span></p>")
+    traceback.print_exception(e, e, e.__traceback__)
+    sys.exit(0)

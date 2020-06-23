@@ -1,0 +1,100 @@
+#!/bin/bash
+# this script handles non-submissions from whitelisted users
+# don't use this script outside of the docker!
+
+ANSWERPASS=`head -n 2 /HW/.answer | tail -n 1`
+ANSWERUSER=`head -n 1 /HW/.answer | cut -f1 -d@`
+ANSWERSERVER=`head -n 1 /HW/.answer | cut -f2 -d@`
+
+SENDER=`head -n 1 /home/dummy/info`
+SENDERINFO="$1"
+SUBJECT=`head -n 2 /home/dummy/info | tail -n 1`
+RECIEVED=`head -n 3 /home/dummy/info | tail -n 1`
+
+SENDERNAME=`python3 -c "import json; print(json.loads('$SENDERINFO')['name'])"`
+
+function m
+{
+    mailsend-go -f "$ANSWERUSER@$ANSWERSERVER" -sub "Re: $SUBJECT" \
+        -port 587 -smtp "smtp.$ANSWERSERVER" -t "$SENDER" \
+        auth -user "$ANSWERUSER" -pass "$ANSWERPASS" -q \
+        body -mime-type "text/html" -msg "`cat /HW/.header`""`cat /home/dummy/.css 2> /dev/null`""`cat /HW/.middle`""$1""`cat /HW/.footer`" 2> /dev/null
+    if [ $? -ne 0 ]
+    then
+        echo ERROR cannot send email
+        echo "$1"
+    fi
+}
+
+if [ "`cut -f1 -d ' '<<<$SUBJECT`" = description ] 
+then
+	REQUESTED="$(cut -f2- -d ' '<<<$SUBJECT' '`tail -n+4 /home/dummy/info`)"
+	# send description
+	for filename in /HW/*/manifest.json
+	do
+		exercise=`basename "$(dirname "$filename")"`
+		if [[ "$REQUESTED" == *"$exercise"* ]]
+		then 
+			VALID=`/HW/validate "$exercise" "$SENDERINFO" | head -n 2 | tail -n 1`
+			if [ -n "$VALID" -a "$VALID" != reject ]
+			then
+				m "<h3>Dear $SENDERNAME,</h3>
+<h1>$exercise</h1>
+Deadline: `python3 -c \"import json
+manifest=json.load(open('$filename'))
+if 'deadline' in manifest and manifest['deadline']:
+    print(manifest['deadline'])\"`
+<h2>Description</h2>
+<div class=description>
+`python3 -c \"import json
+manifest=json.load(open('$filename'))
+if 'description' in manifest:
+    print(manifest['description'])\"`
+</div>
+<p>
+Best,<br>
+<span style=\"font-family: monospace;\">hazi@</span> <a href=\"http://math.bme.hu/\">BME Institute of Mathematics</a>
+</p>
+"
+			fi
+		fi
+	done
+else
+AVAILABLE=""
+OLD=""
+
+for filename in /HW/*/manifest.json
+do
+    exercise=`basename "$(dirname "$filename")"`
+    VALID=`/HW/validate "$exercise" "$SENDERINFO" | head -n 2 | tail -n 1`
+    if [ -n "$VALID" -a "$VALID" != reject ]
+    then
+        DEADLINE=`python3 -c "import json
+manifest=json.load(open('$filename'))
+if 'deadline' in manifest and manifest['deadline']:
+    print(manifest['deadline'])"`
+        row="<tr><td>$exercise</td><td>$DEADLINE</td></tr>
+"
+        if [ -z "$DEADLINE" ]
+        then
+            OLD+="$row"
+        elif python3 -c "import sys; from dateutil.parser import parse; exit(0 if parse(sys.argv[1]) <= parse(sys.argv[2]) else 1)" "$RECIEVED" "$DEADLINE"
+        then
+            AVAILABLE+="$row"
+        else
+            OLD+="$row"
+        fi
+    fi
+done
+
+m "<h3>Dear $SENDERNAME,</h3>
+<table>
+<tr><th>Current exercises:</th><th></th></tr>
+$AVAILABLE<tr><th>Other exercises:</th><th></th></tr>
+$OLD</table>
+<p>
+Best,<br>
+<span style=\"font-family: monospace;\">hazi@</span> <a href=\"http://math.bme.hu/\">BME Institute of Mathematics</a>
+</p>
+"
+fi

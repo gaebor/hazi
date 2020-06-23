@@ -1,0 +1,25 @@
+FROM ubuntu:18.04
+
+RUN apt update && apt -y upgrade
+RUN apt -y install python python-pip coreutils build-essential python3-pip libssl-dev kmod iptables
+
+RUN export PIPINSTALL="-m pip install" && \
+    export PYTHONPACKAGES="numpy scipy matplotlib python-dateutil" && \
+    python2 $PIPINSTALL --upgrade pip && python2 $PIPINSTALL $PYTHONPACKAGES && \
+    python3 $PIPINSTALL --upgrade pip && python3 $PIPINSTALL $PYTHONPACKAGES && \
+    unset PIPINSTALL && unset PYTHONPACKAGES
+
+ADD mailsend-go_1.0.9_linux-64bit.deb /mailsend-go.deb
+RUN dpkg -i mailsend-go.deb
+
+RUN echo 'dummy\ndummy\n' | adduser --gecos "" dummy
+
+# maybe match the host locale?
+RUN apt -y install locales && locale-gen en_US.UTF-8 && update-locale LC_ALL=en_US.UTF-8
+ENV LC_ALL='en_US.UTF-8'
+
+ENTRYPOINT chmod -R 550 /HW/ && \
+            (chown root:root /home/dummy/info; chown dummy:dummy /home/dummy/*.*; true)2> /dev/null && \
+           /HW/main
+
+ADD HW /HW

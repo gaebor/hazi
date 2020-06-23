@@ -1,0 +1,25 @@
+#!/usr/bin/python3
+import sys
+if len(sys.argv) <= 1 or not sys.argv[1] or sys.argv[1] == "--help":
+    print("Accuire information about user in database.")
+    print("USAGE: `" + sys.argv[0] + " senderaddress`")
+    print("\tsenderaddress: email of the sender")
+    print("")
+    print("RESULT: prints the appropriate user info to stdout")
+    print("the output is a dictionary in a json format")
+    print("the keys are the same as in the \".tsv\" tables")
+    print("empty fields are filled with \"\"")
+    print("")
+    print("If the script exits with a non-zero return code then the user is not found in the database!")
+    exit(1)
+
+import csv, json, glob
+
+for filename in glob.glob("/HW/*.tsv"):
+    with open(filename, encoding='utf-8', newline='') as csvfile:
+        reader = csv.DictReader(csvfile, delimiter='\t', restval='')
+        for row in reader:
+            if row['email'] == sys.argv[1]:
+                json.dump(dict(row), sys.stdout)
+                exit(0)
+exit(1)

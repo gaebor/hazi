@@ -1,0 +1,98 @@
+#!/usr/bin/python3
+import sys
+if len(sys.argv) <= 1 or not sys.argv[1] or sys.argv[1] == "--help":
+    print("Validate a submission.")
+    print("USAGE: `" + sys.argv[0] + " exercise senderinfo`")
+    print("\texercise: name of the exercise (a folder in HW/)")
+    print("\tsenderinfo: output of `getsenderinfo`")
+    print("")
+    print("RESULT: prints four lines to stdout")
+    print("\tTYPE of the exercise (which script to evaluate with)")
+    print("\tTEST whether to test the exercise or not, there are three cases:")
+    print("\t\t\"test\" test the exercise, but the points won't be logged")
+    print("\t\t\"reject\" invalid submission, don't even score it")
+    print("\t\t\"valid\" valid submission, game on!")
+    print("\tRESPONSE what to send to the user, there are two cases:")
+    print("\t\t\"score\" show the score, which is the return code of the test script")
+    print("\t\t\"tests\" show the stdout of test script")
+    print("\tMAX an integer, the maximum points one can get")
+    print("")
+    print("If the script exits with a non-zero return code then skip the exercise due to server error!")
+    sys.exit(1)
+
+import json, re, glob
+from dateutil.parser import parse
+from auxiliary import getitems
+
+exercise = sys.argv[1]
+senderinfo = json.loads(sys.argv[2])
+
+def convert_to_set(x):
+    return set(re.findall('\w+', x)) if type(x) == str else set(x)
+
+def do_intersect(x, y):
+    return len(convert_to_set(x) & convert_to_set(y)) > 0
+
+with open("/home/dummy/info") as f:
+    f.readline()
+    f.readline()
+    recieved_date = parse(f.readline())
+    mailcontent= f.read()
+
+manifest=json.load(open('/HW/' + exercise + '/manifest.json'))
+exercise_type = manifest['type'] if 'type' in manifest and manifest['type'] else 'python3_function'
+print(exercise_type)
+
+def accept():
+    if 'visible' not in manifest or not manifest['visible']:
+        return False
+    elif 'course' in manifest and do_intersect(senderinfo["course"], manifest["course"]):
+        return True
+    else:
+        return False
+
+def full_valid():
+    deadline = parse(manifest['deadline']) if 'deadline' in manifest else recieved_date
+    
+    if (deadline - recieved_date).days < 0:
+        return False
+
+    if "disclaimer" in manifest:
+        if type(manifest["disclaimer"]) == str:
+            disclaimer = [manifest["disclaimer"]]
+        else:
+            disclaimer = manifest["disclaimer"]        
+        return any([mailcontent.strip() == lang.format(**senderinfo).strip() for lang in disclaimer])
+    else:
+        return True
+
+if accept():
+    if full_valid():
+        print("valid")
+    else:
+        print("test")
+else:
+   print("reject")
+
+# response
+if "response" in manifest:
+    response = getitems(manifest, "response", default="", nargs="*")
+else:
+    response = ["description", "tests", "score"]
+print(" ".join(response))
+    
+# max score is the number of test cases
+if exercise_type[-7:] == "python3":
+    print(len(glob.glob('/HW/' + exercise  + '/i*.pkl')))
+elif exercise_type[-7:] == "program":
+    print(len(glob.glob('/HW/' + exercise  + '/i*.json')))
+elif exercise_type == "text":
+    pass
+elif exercise_type == "choice":
+    try:
+        with open('/HW/' + exercise  + '/solution.txt') as f:
+            print(sum(1 for _ in f))
+    except:
+        pass
+else:
+    print(len(glob.glob('/HW/' + exercise  + '/i*.*')))

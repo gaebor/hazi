@@ -1,0 +1,80 @@
+#!/usr/bin/python3
+import traceback
+
+try:
+    import os, glob, subprocess, sys, json, shutil
+    from html import escape as htmlescape
+    from auxiliary import run, getitems
+    
+    exercisename = sys.argv[1]
+    # print("<h1>", htmlescape(exercisename), "</h1>", sep='')
+    os.chdir("/HW/" + exercisename)
+    with open("manifest.json", "r", encoding="utf8") as f:
+        manifest=json.load(f)
+
+    try:
+        sys.path.insert(1, "/HW/" + exercisename)
+        from test import _eval
+    except:
+        def _eval(_input, stdout, stderr, returncode):
+            if "stdout" in _input and _input["stdout"].rstrip('\n') != stdout.rstrip('\n'):
+                return False
+            if "stderr" in _input and _input["stderr"].rstrip('\n') != stderr.rstrip('\n'):
+                return False
+            if "returncode" in _input and _input["returncode"] != returncode:
+                return False
+            return True
+    _compile = getitems(manifest, "compile", default=[], nargs="*")
+    if len(_compile) > 0:
+        print("<h2>", "Compile", "</h2>", sep='')
+        for _command in _compile:
+            if len(_command) > 0:
+                result = run(_command, timelimit=getitems(manifest, "timelimit", 10))
+                print("stdout: <pre class=stdout>" + htmlescape(result.stdout) + "</pre>")
+                print("stderr: <pre class=stderr>" + htmlescape(result.stderr) + "</pre>")
+                if not hasattr(result,'returncode'):
+                    print("<p><span class=yellow>Compile timed out!</span></p>")
+                    sys.exit(0)
+                if result.returncode != 0:
+                    sys.exit(0)
+    _command = getitems(manifest, "command", default="./"+exercisename, nargs="+")
+
+    goodanswers = 0
+    print("<h2>", "Tests", "</h2>", sep='')
+    for testfile in glob.glob("i*.json"):
+        print("<h3>", htmlescape(os.path.splitext(os.path.basename(testfile))[0]), "</h3>", sep='', flush=True)
+        with open(testfile, "r", encoding="utf8") as f:
+            testinfo=json.load(f)
+        argv = getitems(testinfo, "argv", [])
+        input = getitems(testinfo, "stdin", "")
+
+        for auxfile in getitems(testinfo, "file", default="", nargs="*"):
+            auxfile = os.path.basename(auxfile)
+            shutil.copyfile(auxfile, "/home/dummy/" + auxfile)
+            shutil.chown("/home/dummy/" + auxfile, "dummy", "dummy")
+        
+        result = run(_command + argv, timelimit=getitems(testinfo, "timelimit", 10), input=input)
+        
+        print("<p>argv: <tt>", htmlescape(repr(argv)), "</tt><br>", sep='')
+        print("stdin: <pre class=stdin>", htmlescape(input), "</pre>", sep='')
+        print("stdout: <pre class=stdout>", htmlescape(result.stdout), "</pre>", sep='')
+        print("stderr: <pre class=stderr>", htmlescape(result.stderr), "</pre>", sep='')
+        
+        if hasattr(result,'returncode'):
+            print("return code: <tt>", result.returncode, "</tt></p>", sep='')
+            try:
+                if _eval(testinfo, result.stdout, result.stderr, result.returncode):
+                    print("<p><span class=green>Test case correct!</span></p>")
+                    goodanswers += 1
+                else:
+                    print("<p><span class=red>Test case incorrect!</span></p>")
+            except Exception as e:
+                print("<pre class=stderr>", htmlescape(str(e)), "</pre>", sep='')
+        else:
+            print("<span class=yellow>Test timed out!</span></p>")
+
+    sys.exit(goodanswers)
+except Exception as e:
+    print("<p><span class=orange>Server error!</span></p>")
+    traceback.print_exception(e, e, e.__traceback__)
+    sys.exit(0)

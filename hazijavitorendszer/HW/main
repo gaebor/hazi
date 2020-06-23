@@ -1,0 +1,145 @@
+#!/bin/bash
+# entrypoint for the docker
+# don't use this script outside of the docker!
+
+function log ()
+{
+    echo `date "+[%F %T %Z]"` $@
+}
+
+function timelimit
+{
+    timeout --kill-after=10s 60s "$@"
+}
+
+if [ ! -f /home/dummy/info ]
+then
+    log INVALID submission content \"`ls /home/dummy/`\"
+    exit
+fi
+
+# is the sender valid?
+SENDER=`head -n 1 /home/dummy/info`
+SENDERINFO=`timelimit /HW/getsenderinfo "$SENDER"`
+
+if [ $? -ne 0 ]
+then
+    log INVALID sender "\"$SENDER\""
+    exit
+fi
+
+SUBJECT=`head -n 2 /home/dummy/info | tail -n 1`
+RECIEVED=`head -n 3 /home/dummy/info | tail -n 1`
+
+SOLUTIONS=`cd /home/dummy; ls -1 *.* 2> /dev/null | sed -e 's/\.[^.]\+$//' | sort | uniq`
+
+# is it a submission at all?
+if [ -z "$SOLUTIONS" ]
+then
+    timelimit /HW/off "$SENDERINFO"
+    log INFO from "\"$SENDER\"" subject "\"$SUBJECT\""
+    exit
+fi
+
+ANSWERPASS=`head -n 2 /HW/.answer | tail -n 1`
+ANSWERUSER=`head -n 1 /HW/.answer | cut -f1 -d@`
+ANSWERSERVER=`head -n 1 /HW/.answer | cut -f2 -d@`
+
+function m
+{
+    mailsend-go -f "$ANSWERUSER@$ANSWERSERVER" -sub "Re: $SUBJECT $1" \
+        -port 587 -smtp "smtp.$ANSWERSERVER" -t "$SENDER" \
+        auth -user "$ANSWERUSER" -pass "$ANSWERPASS" -q \
+        body -mime-type "text/html" -msg "`cat /HW/.header`""`cat /home/dummy/.css 2> /dev/null`""`cat /HW/.middle`""$2""`cat /HW/.footer`"
+
+    if [ $? -ne 0 ]
+    then
+        log ERROR cannot send email to "\"$SENDER\" subject $1"
+        echo "$2" 1>&2
+    fi
+}
+
+echo "$SOLUTIONS" | while read exercise
+do
+    if [ ! -f "/HW/$exercise/manifest.json" ]
+    then
+        # there is no such exercise!
+        log INVALID from "\"$SENDER\"" non-existent exercise "\"$exercise\""
+        m "\"$exercise\"" "<span class=red>No such exercise!</span>"
+        continue
+    else
+        # validate submission for this exercise
+        VALIDATEINFO=`timelimit /HW/validate "$exercise" "$SENDERINFO"`
+        if [ $? -ne 0 ]
+        then
+            log ERROR unable to validate submission from "\"$SENDER\"" exercise "\"$exercise\""
+            m "\"$exercise\"" "<span class=orange>Server error!</span> unable to validate!"
+            continue
+        fi
+        TYPE=`head -n 1 <<<"$VALIDATEINFO"`
+        if [ ! -x "/HW/$TYPE" -o "$TYPE" = "main" -o "$TYPE" = "off" -o "$TYPE" = "validate" -o "$TYPE" = "getsenderinfo" ]
+        then
+            log ERROR exercise "\"$exercise\"" invalid type "\"$TYPE\""
+            m "\"$exercise\"" "<span class=orange>Server error!</span> Cannot evaluate exercise!"
+            continue
+        fi
+        if [ "`head -n 2 <<<"$VALIDATEINFO" | tail -n 1`" = "reject" ]
+        then
+            log INVALID submission from "\"$SENDER\"" exercise "\"$exercise\""
+            m "\"$exercise\"" "<span class=red>Invalid submission!</span>"
+            continue
+        fi
+        
+        MESSAGE=$(timelimit /HW/$TYPE "$exercise")
+        RESULT=$?
+
+        if [ -z "`head -n 3 <<<"$VALIDATEINFO" | tail -n 1 | grep tests`" ]
+        then
+            MESSAGE=
+        fi
+        
+        if [ "`head -n 3 <<<"$VALIDATEINFO" | tail -n 1 | grep description`" ]
+        then
+            MESSAGE="<h2>Description</h2>
+<div class=description>
+"`python3 -c "import json; manifest = json.load(open('/HW/$exercise/manifest.json', 'r', encoding='utf8')); print('' if 'description' not in manifest else manifest['description'])"`"
+</div>
+$MESSAGE"
+        fi
+        
+        if [ $RESULT -eq 124 ]
+        then
+            RESULT=0
+            MESSAGE="<p><span class=yellow>Your submission timed out!</span></p>
+$MESSAGE"
+        fi
+        
+        if [ "`head -n 3 <<<"$VALIDATEINFO" | tail -n 1 | grep score`" ]
+        then
+            MAXSCORE=`head -n 4 <<<"$VALIDATEINFO" | tail -n 1`
+            if [ "$MAXSCORE" -a `wc -l <<<"$VALIDATEINFO"` -gt 3 ]
+            then
+                MESSAGE="<h1 class=score>Score: $RESULT out of $MAXSCORE</h1>
+$MESSAGE"
+            else
+                MESSAGE="<h1 class=score>Score: $RESULT</h1>
+$MESSAGE"
+            fi
+        fi
+
+        if [ "`head -n 2 <<<"$VALIDATEINFO" | tail -n 1`" != "valid" ]
+        then
+            log INVALID submission from "\"$SENDER\"" exercise "\"$exercise\"" returned $RESULT
+            MESSAGE="<p><span class=yellow>Invalid submission!</span></p>
+$MESSAGE"
+        else
+            log "<SUCCESS>" submission from "\"$SENDER\"" exercise "\"$exercise\"" returned $RESULT
+        fi
+        if [ -z "$MESSAGE" ]
+        then
+            m "\"$exercise\"" "Acknowledged!"
+        else
+            m "\"$exercise\"" "$MESSAGE"
+        fi
+    fi
+done

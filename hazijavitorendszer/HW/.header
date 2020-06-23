@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+div.description {
+    border: 1px black dotted;
+    padding: 2px;
+}
+span.red {
+    background-color: red;
+    border: 1px black solid;
+    padding: 2px;
+}
+span.orange {
+    background-color: orange;
+    border: 1px black solid;
+    padding: 2px;
+}
+span.yellow {
+    background-color: yellow;
+    border: 1px black solid;
+    padding: 2px;
+}
+span.green {
+    background-color: green;
+    border: 1px black solid;
+    padding: 2px;
+}
+pre.stderr {
+    background-color: lightpink;
+}
+

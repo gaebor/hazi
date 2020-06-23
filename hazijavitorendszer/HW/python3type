@@ -1,0 +1,121 @@
+#!/usr/bin/python3
+import traceback
+
+try:
+    import os, glob, subprocess, sys, json, shutil, pickle
+    from html import escape as htmlescape
+    from auxiliary import run, trytoload, getitems
+    
+    exercisename = sys.argv[1]
+    # print("<h1>", htmlescape(exercisename), "</h1>", sep='')
+    os.chdir("/HW/" + exercisename)
+    with open("manifest.json", "r", encoding="utf8") as f:
+        manifest=json.load(f)
+    
+    if os.path.isfile("test.py"):
+        with open("test.py") as f:
+            exec(f.read())
+    if ('_eval' not in vars() and '_eval' not in globals()) or not callable(_eval):
+        def _eval(_input, _output, _expected_output, _exception, _expected_exception):
+            return type(_output) == type(_expected_output) and \
+                _output == _expected_output and \
+                type(_exception) == type(_expected_exception)
+    timelimit = getitems(manifest, "timelimit", 10)
+    _compile = getitems(manifest, "compile", default=[], nargs="*")
+    if len(_compile) > 0:
+        print("<h2>", "Compile", "</h2>", sep='')
+        for _command in _compile:
+            if len(_command) > 0:
+                result = run(_command, timelimit=timelimit)
+                print("stdout: <pre class=stdout>" + htmlescape(result.stdout) + "</pre>")
+                print("stderr: <pre class=stderr>" + htmlescape(result.stderr) + "</pre>")
+                if hasattr(result,'returncode'):
+                    if result.returncode != 0:
+                        print("<p><span class=red>Compile exited with error!</span>")
+                        if result.returncode < 0:
+                            print("signal:", -result.returncode)
+                        else:
+                            print("returncode:", result.returncode)
+                        print("</p>")
+                        sys.exit(0)
+                else:
+                    print("<p><span class=yellow>Compile timed out!</span></p>")
+                    sys.exit(0)
+    _code = getitems(manifest, "code", "def _code(_input):\n    return " + exercisename + "(*_input)")
+    
+    try:
+        with open("/home/dummy/" + exercisename + ".py", "r", encoding="utf8") as f:
+            solution = f.read()
+    except Exception as e:
+        print("<p><span class=red>Cannot load solution!</span>")
+        print("<pre class=stderr>", htmlescape(str(e)), "</pre></p>", sep='')
+        sys.exit(0)
+
+    print("<h2>", "Evaluation code", "</h2>", sep='')
+    print("<pre>", htmlescape(_code), "</pre>", sep='')
+    
+    goodanswers = 0
+    print("<h2>", "Tests", "</h2>", sep='')
+    for testfile in glob.glob("i*.pkl"):
+        print("<h3>" + htmlescape(os.path.splitext(os.path.basename(testfile))[0]) + "</h3>")
+        with open(testfile, "rb") as f:
+            testinput = f.read()
+        _input = pickle.loads(testinput)
+        print("<p>input: <tt>", htmlescape(repr(_input)), "</tt></p>", sep="")
+        result = run(["python3", "-c", solution + "\n" + _code + "\nimport pickle, traceback\n"
+                    "try:\n"
+                    "    _output = _code(pickle.loads(" + repr(testinput) + "))\n"
+                    "    _exception = None\n"
+                    "    _exception_msg = ''\n"
+                    "except Exception as e:\n"
+                    "    _output = None\n"
+                    "    _exception = e\n"
+                    "    _exception_msg = ''.join(traceback.format_exception(e,e,e.__traceback__))\n"
+                    "with open('e.pkl', 'wb') as f:\n"
+                    "    pickle.dump(_exception, f)\n"
+                    "with open('em.pkl', 'wb') as f:\n"
+                    "    pickle.dump(_exception_msg, f)\n"
+                    "with open('o.pkl', 'wb') as f:\n"
+                    "    pickle.dump(_output, f)\n"
+                        ],
+                        timelimit=timelimit, input="")
+        print("<PRE class=stdout>" + htmlescape(result.stdout) + "</PRE>")
+        print("<PRE class=stderr>" + htmlescape(result.stderr) + "</PRE>")
+        if hasattr(result,'returncode'):
+            if result.returncode != 0:
+                print("<p><span class=red>Test exited with error!</span>")
+                if result.returncode < 0:
+                    print("signal:", -result.returncode)
+                else:
+                    print("returncode:", result.returncode)
+                print("</p>")
+                continue
+        else:
+            print("<p><span class=yellow>Test timed out!</span></p>")
+            continue
+        _output = trytoload("/home/dummy/o.pkl")
+        _exception = trytoload("/home/dummy/e.pkl")
+        _exception_msg = trytoload("/home/dummy/em.pkl")
+        print("<p>output: <tt>", htmlescape(repr(_output)), "</tt></p>", sep='')
+        if _exception_msg:
+            print("<pre class=stderr>", htmlescape(_exception_msg), "</pre>", sep='')
+        elif _exception is not None:
+            print("<pre class=stderr>", htmlescape(str(_exception)), "</pre>", sep='')
+
+        testname = os.path.basename(testfile)[1:]
+        _expected_output = trytoload("o" + testname)
+        _expected_exception = trytoload("e" + testname)
+        try:
+            success = _eval(_input, _output, _expected_output, _exception, _expected_exception)
+            if success:
+                print("<span class=green>Test case correct!</span>")
+                goodanswers += 1
+            else:
+                print("<span class=red>Test case incorrect!</span>")
+        except Exception as e:
+            print("<pre class=stderr>", htmlescape(str(e)), "</pre>", sep='')
+    sys.exit(goodanswers)
+except Exception as e:
+    print("<p><span class=orange>Server error!</span>")
+    traceback.print_exception(e, e, e.__traceback__)
+    sys.exit(0)
