@@ -1,7 +1,11 @@
-FROM ubuntu:18.04
+FROM ubuntu:latest
+
+ADD https://github.com/muquit/mailsend-go/releases/download/v1.0.9/mailsend-go_1.0.9_linux-64bit.deb /mailsend-go.deb
+ADD https://bootstrap.pypa.io/get-pip.py /get-pip.py
 
 RUN apt update && apt -y upgrade
-RUN apt -y install python python-pip coreutils build-essential python3-pip libssl-dev kmod iptables
+RUN apt -y install python2 python3-pip coreutils build-essential libssl-dev kmod iptables && \
+    python2 get-pip.py
 
 RUN export PIPINSTALL="-m pip install" && \
     export PYTHONPACKAGES="numpy scipy matplotlib python-dateutil" && \
@@ -9,7 +13,6 @@ RUN export PIPINSTALL="-m pip install" && \
     python3 $PIPINSTALL --upgrade pip && python3 $PIPINSTALL $PYTHONPACKAGES && \
     unset PIPINSTALL && unset PYTHONPACKAGES
 
-ADD mailsend-go_1.0.9_linux-64bit.deb /mailsend-go.deb
 RUN dpkg -i mailsend-go.deb
 
 RUN echo 'dummy\ndummy\n' | adduser --gecos "" dummy
@@ -17,9 +20,3 @@ RUN echo 'dummy\ndummy\n' | adduser --gecos "" dummy
 # maybe match the host locale?
 RUN apt -y install locales && locale-gen en_US.UTF-8 && update-locale LC_ALL=en_US.UTF-8
 ENV LC_ALL='en_US.UTF-8'
-
-ENTRYPOINT chmod -R 550 /HW/ && \
-            (chown root:root /home/dummy/info; chown dummy:dummy /home/dummy/*.*; true)2> /dev/null && \
-           iptables -A OUTPUT -m owner --uid-owner dummy -j DROP && \
-           /HW/main
-ADD HW /HW

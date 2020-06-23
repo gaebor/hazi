@@ -19,6 +19,15 @@ then
     shift
 fi
 
+mkdir -p logs
+
+docker build -f hazijavitorendszer/Dockerfile -t hazibase hazijavitorendszer > /dev/null
+if [ $? -ne 0 ]
+then
+    echo 'Failed to build image!' 1>&2
+    exit 1
+fi
+    
 if [ -n "$TESTRUN" ]
 then
     docker build -f hazijavitorendszer/Dockerfile.test -t hazi_test hazijavitorendszer > /dev/null
@@ -29,15 +38,15 @@ then
     fi
     container=$(docker container create --memory 100m --network none hazi_test)
 else
-    if [ `docker image ls -q hazicp | wc -l` -lt 1 ]
+    if [ `docker image ls -q hazi_release | wc -l` -lt 1 ]
     then
-        docker build -f hazijavitorendszer/Dockerfile -t hazicp hazijavitorendszer > /dev/null
+        docker build -f hazijavitorendszer/Dockerfile.release -t hazi_release hazijavitorendszer > /dev/null
         if [ $? -ne 0 ]
         then
             exit 1
         fi
     fi
-    container=$(docker container create --memory 100m --network bridge --cap-add NET_ADMIN hazicp)
+    container=$(docker container create --memory 100m --network bridge --cap-add NET_ADMIN hazi_release)
 fi
 
 if [ -z "$container" ]
@@ -46,6 +55,8 @@ then
 fi
 
 FILES=()
+
+docker cp solution/info $container:/home/dummy/
 
 if [ -d "$1" ]
 then
