@@ -1,0 +1,7 @@
+{
+    "type": "program",
+    "command" : ["bash", "secondline_bash.sh"],
+    "description": "<p>Write a Bash program that reads a file with the name as the first command line argument and print the <em>second</em> line of that file to <tt>stdout</tt></p>\n<p>Make sure to exit cleanly!</p>",
+    "visible": true,
+    "course": "lecturer"
+}

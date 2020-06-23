@@ -1,0 +1,6 @@
+{
+    "argv":  ["file3.txt"],
+    "file": ["file3.txt"],
+    "stdout": "mean std",
+    "returncode": 0
+}

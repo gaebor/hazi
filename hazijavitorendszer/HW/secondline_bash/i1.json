@@ -1,0 +1,6 @@
+{
+    "argv":  ["file1.txt"],
+    "file": "file1.txt",
+    "returncode": 0,
+    "stdout": "Bálint"
+}

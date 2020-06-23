@@ -1,0 +1,6 @@
+{
+    "argv":  ["file2.txt"],
+    "file": "file2.txt",
+    "stdout": "Paganini",
+    "returncode": 0
+}

@@ -1,0 +1,8 @@
+{
+    "function": "tocelsius",
+    "type": "python3type",
+    "visible": true,
+    "course": ["lecturer"],
+    "description": "<h1>tocelsius</h1>\nWrite a python function that converts from Fahrenheit to Celsius\n\nThe function should\n<ul>\n<li> be called <tt>tocelsius</tt>\n<li> have one parameter (called <tt>fahrenheit</tt>)\n<li> return the appropriate Fahrenheit degrees as float.\n<li> To get the Celsius, subtract 32 from the Fahrenheit value then multiply with 5/9.\n</ul>\n\nMind the integer vs. float division!",
+    "code": "def _code(_input):\n    return tocelsius(*_input)"
+}

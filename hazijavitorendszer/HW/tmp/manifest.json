@@ -1,0 +1,6 @@
+{
+    "type": "program",
+    "command": ["/bin/bash", "-c", "c++ -std=c++11 -O2 -fno-peephole -fno-peephole2 -I. -S -o - $0 | c++filt -p | grep -A 6 '^f:' | grep movl | tail -n 1"],
+    "visible": true,
+    "course": "lecturer"
+}

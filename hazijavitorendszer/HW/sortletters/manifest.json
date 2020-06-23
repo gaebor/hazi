@@ -1,0 +1,7 @@
+{
+    "type": "text",
+    "description": "Sort the letters \"Q W E R T Y\" alphabetically and submit the result as a <tt>.txt</tt> file. The submitted file should contain only one line with the letters and a single space between them. Mind that the result is case-sensitive.",
+    "visible": true,
+    "course": "lecturer",
+    "response": ["description", "tests"]
+}

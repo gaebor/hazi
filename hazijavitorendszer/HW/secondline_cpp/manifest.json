@@ -1,0 +1,8 @@
+{
+    "type": "program",
+    "compile": ["g++", "-Wall", "-std=c++11", "-o", "secondline_cpp", "secondline_cpp.cpp"],
+    "command" : ["./secondline_cpp"],
+    "description": "<p>Write a C++ program that reads a file with the name as the first command line argument and print the <em>second</em> line of that file to <tt>stdout</tt></p>\n<p>Make sure to exit cleanly!</p>",
+    "visible": true,
+    "course": "lecturer"
+}

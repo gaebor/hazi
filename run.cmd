@@ -37,10 +37,12 @@ FOR %%G IN (%*) DO ( docker cp %%G %_container%:/home/dummy/ )
 
 mkdir logs 2> nul
 
+set "ARGS=%*"
+
 ECHO [RUN]
 IF [%TESTRUN%]==[] (
     docker start -i %_container% 2> logs/%_container%.err > logs/%_container%.log
-    bash archive.sh %* < logs/%_container%.log
+    bash archive.sh %ARGS:\=/% < logs/%_container%.log
 ) ELSE (
     docker start -i %_container%
 )
