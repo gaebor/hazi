@@ -1,2 +1,5 @@
 hazijavitorendszer/HW/.answer
+hazijavitorendszer/HW/*.tsv
 hazijavitorendszer/HW/*/*
+logs/*
+archive/*

@@ -56,8 +56,6 @@ fi
 
 FILES=()
 
-docker cp solution/info $container:/home/dummy/
-
 if [ -d "$1" ]
 then
     for file in "$1"/*

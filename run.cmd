@@ -32,7 +32,6 @@ SET /P _container=<temp.txt
 IF [%_container%]==[] GOTO:eof
 
 ECHO [COPY]
-docker cp solution/info %_container%:/home/dummy/
 FOR %%G IN (%*) DO ( docker cp %%G %_container%:/home/dummy/ )
 
 mkdir logs 2> nul

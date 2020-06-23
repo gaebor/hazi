@@ -1,4 +1,4 @@
-FROM ubuntu:latest
+FROM ubuntu:20.04
 
 ADD https://github.com/muquit/mailsend-go/releases/download/v1.0.9/mailsend-go_1.0.9_linux-64bit.deb /mailsend-go.deb
 ADD https://bootstrap.pypa.io/get-pip.py /get-pip.py
