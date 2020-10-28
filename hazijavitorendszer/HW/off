@@ -15,9 +15,10 @@ SENDERNAME=`python3 -c "import json; print(json.loads('$SENDERINFO')['name'])"`
 
 function m
 {
-    mailsend-go -f "$ANSWERUSER@$ANSWERSERVER" -sub "Re: $SUBJECT" \
-        -port 587 -smtp "smtp.$ANSWERSERVER" -t "$SENDER" \
-        auth -user "$ANSWERUSER" -pass "$ANSWERPASS" -q \
+    SMTP_USER_PASS="$ANSWERPASS" mailsend-go -f "$ANSWERUSER@$ANSWERSERVER" \
+        -sub "Re: $SUBJECT" -t "$SENDER" \
+        -port 587 -smtp "smtp.$ANSWERSERVER" \
+        auth -user "$ANSWERUSER" -q \
         body -mime-type "text/html" -msg "`cat /HW/.header`""`cat /home/dummy/.css 2> /dev/null`""`cat /HW/.middle`""$1""`cat /HW/.footer`" 2> /dev/null
     if [ $? -ne 0 ]
     then

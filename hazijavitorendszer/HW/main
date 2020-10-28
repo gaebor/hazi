@@ -9,7 +9,7 @@ function log ()
 
 function timelimit
 {
-    timeout --kill-after=10s 60s "$@"
+    timeout --kill-after=1s 55s "$@"
 }
 
 if [ ! -f /home/dummy/info ]
@@ -20,7 +20,7 @@ fi
 
 # is the sender valid?
 SENDER=`head -n 1 /home/dummy/info`
-SENDERINFO=`timelimit /HW/getsenderinfo "$SENDER"`
+SENDERINFO=`/HW/getsenderinfo "$SENDER"`
 
 if [ $? -ne 0 ]
 then
@@ -36,7 +36,7 @@ SOLUTIONS=`cd /home/dummy; ls -1 *.* 2> /dev/null | sed -e 's/\.[^.]\+$//' | sor
 # is it a submission at all?
 if [ -z "$SOLUTIONS" ]
 then
-    timelimit /HW/off "$SENDERINFO"
+    /HW/off "$SENDERINFO"
     log INFO from "\"$SENDER\"" subject "\"$SUBJECT\""
     exit
 fi
@@ -47,10 +47,11 @@ ANSWERSERVER=`head -n 1 /HW/.answer | cut -f2 -d@`
 
 function m
 {
-    mailsend-go -f "$ANSWERUSER@$ANSWERSERVER" -sub "Re: $SUBJECT $1" \
-        -port 587 -smtp "smtp.$ANSWERSERVER" -t "$SENDER" \
-        auth -user "$ANSWERUSER" -pass "$ANSWERPASS" -q \
-        body -mime-type "text/html" -msg "`cat /HW/.header`""`cat /home/dummy/.css 2> /dev/null`""`cat /HW/.middle`""$2""`cat /HW/.footer`"
+    SMTP_USER_PASS="$ANSWERPASS" mailsend-go -f "$ANSWERUSER@$ANSWERSERVER" \
+        -sub "Re: $SUBJECT $1" -t "$SENDER" \
+        -port 587 -smtp "smtp.$ANSWERSERVER" \
+        auth -user "$ANSWERUSER" -q \
+        body -mime-type "text/html" -msg "`cat /HW/.header /home/dummy/.css /HW/.middle 2> /dev/null`""$2""`cat /HW/.footer`"
 
     if [ $? -ne 0 ]
     then
@@ -69,7 +70,7 @@ do
         continue
     else
         # validate submission for this exercise
-        VALIDATEINFO=`timelimit /HW/validate "$exercise" "$SENDERINFO"`
+        VALIDATEINFO=`/HW/validate "$exercise" "$SENDERINFO"`
         if [ $? -ne 0 ]
         then
             log ERROR unable to validate submission from "\"$SENDER\"" exercise "\"$exercise\""
