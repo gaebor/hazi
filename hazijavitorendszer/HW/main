@@ -2,11 +2,6 @@
 # entrypoint for the docker
 # don't use this script outside of the docker!
 
-function log ()
-{
-    echo `date "+[%F %T %Z]"` $@
-}
-
 function timelimit
 {
     timeout --kill-after=1s 55s "$@"
@@ -14,7 +9,7 @@ function timelimit
 
 if [ ! -f /home/dummy/info ]
 then
-    log INVALID submission content \"`ls /home/dummy/`\"
+    /HW/log INVALID submission content \"`ls /home/dummy/`\"
     exit
 fi
 
@@ -24,7 +19,7 @@ SENDERINFO=`/HW/getsenderinfo "$SENDER"`
 
 if [ $? -ne 0 ]
 then
-    log INVALID sender "\"$SENDER\""
+    /HW/log INVALID sender "\"$SENDER\""
     exit
 fi
 
@@ -37,61 +32,44 @@ SOLUTIONS=`cd /home/dummy; ls -1 *.* 2> /dev/null | sed -e 's/\.[^.]\+$//' | sor
 if [ -z "$SOLUTIONS" ]
 then
     /HW/off "$SENDERINFO"
-    log INFO from "\"$SENDER\"" subject "\"$SUBJECT\""
+    /HW/log INFO from "\"$SENDER\"" subject "\"$SUBJECT\""
     exit
 fi
 
-ANSWERPASS=`head -n 2 /HW/.answer | tail -n 1`
-ANSWERUSER=`head -n 1 /HW/.answer | cut -f1 -d@`
-ANSWERSERVER=`head -n 1 /HW/.answer | cut -f2 -d@`
-
-function m
-{
-    SMTP_USER_PASS="$ANSWERPASS" mailsend-go -f "$ANSWERUSER@$ANSWERSERVER" \
-        -sub "Re: $SUBJECT $1" -t "$SENDER" \
-        -port 587 -smtp "smtp.$ANSWERSERVER" \
-        auth -user "$ANSWERUSER" -q \
-        body -mime-type "text/html" -msg "`cat /HW/.header /home/dummy/.css /HW/.middle 2> /dev/null`""$2""`cat /HW/.footer`"
-
-    if [ $? -ne 0 ]
-    then
-        log ERROR cannot send email to "\"$SENDER\" subject $1"
-        echo "$2" 1>&2
-    fi
-}
+RESERVED_NAMES="off main getsenderinfo validate email log"
 
 echo "$SOLUTIONS" | while read exercise
 do
     if [ ! -f "/HW/$exercise/manifest.json" ]
     then
         # there is no such exercise!
-        log INVALID from "\"$SENDER\"" non-existent exercise "\"$exercise\""
-        m "\"$exercise\"" "<span class=red>No such exercise!</span>"
+        /HW/log INVALID from "\"$SENDER\"" non-existent exercise "\"$exercise\""
+        /HW/email "$SENDER" "\"$exercise\"" "<span class=red>No such exercise!</span>"
         continue
     else
         # validate submission for this exercise
         VALIDATEINFO=`/HW/validate "$exercise" "$SENDERINFO"`
         if [ $? -ne 0 ]
         then
-            log ERROR unable to validate submission from "\"$SENDER\"" exercise "\"$exercise\""
-            m "\"$exercise\"" "<span class=orange>Server error!</span> unable to validate!"
+            /HW/log ERROR unable to validate submission from "\"$SENDER\"" exercise "\"$exercise\""
+            /HW/email "$SENDER" "\"$exercise\"" "<span class=orange>Server error!</span> unable to validate!"
             continue
         fi
         TYPE=`head -n 1 <<<"$VALIDATEINFO"`
-        if [ ! -x "/HW/$TYPE" -o "$TYPE" = "main" -o "$TYPE" = "off" -o "$TYPE" = "validate" -o "$TYPE" = "getsenderinfo" ]
+        if [[ ! -x "/HW/$TYPE" || " $RESERVED_NAMES " == *" $TYPE "* ]]
         then
-            log ERROR exercise "\"$exercise\"" invalid type "\"$TYPE\""
-            m "\"$exercise\"" "<span class=orange>Server error!</span> Cannot evaluate exercise!"
+            /HW/log ERROR exercise "\"$exercise\"" invalid type "\"$TYPE\""
+            /HW/email "$SENDER" "\"$exercise\"" "<span class=orange>Server error!</span> Cannot evaluate exercise!"
             continue
         fi
         if [ "`head -n 2 <<<"$VALIDATEINFO" | tail -n 1`" = "reject" ]
         then
-            log INVALID submission from "\"$SENDER\"" exercise "\"$exercise\""
-            m "\"$exercise\"" "<span class=red>Invalid submission!</span>"
+            /HW/log INVALID submission from "\"$SENDER\"" exercise "\"$exercise\""
+            /HW/email "$SENDER" "\"$exercise\"" "<span class=red>Invalid submission!</span>"
             continue
         fi
         
-        MESSAGE=$(timelimit /HW/$TYPE "$exercise")
+        MESSAGE=$(timelimit "/HW/$TYPE" "$exercise")
         RESULT=$?
 
         if [ -z "`head -n 3 <<<"$VALIDATEINFO" | tail -n 1 | grep tests`" ]
@@ -130,17 +108,17 @@ $MESSAGE"
 
         if [ "`head -n 2 <<<"$VALIDATEINFO" | tail -n 1`" != "valid" ]
         then
-            log INVALID submission from "\"$SENDER\"" exercise "\"$exercise\"" returned $RESULT
+            /HW/log INVALID submission from "\"$SENDER\"" exercise "\"$exercise\"" returned $RESULT
             MESSAGE="<p><span class=yellow>Invalid submission!</span></p>
 $MESSAGE"
         else
-            log "<SUCCESS>" submission from "\"$SENDER\"" exercise "\"$exercise\"" returned $RESULT
+            /HW/log "<SUCCESS>" submission from "\"$SENDER\"" exercise "\"$exercise\"" returned $RESULT
         fi
         if [ -z "$MESSAGE" ]
         then
-            m "\"$exercise\"" "Acknowledged!"
+            /HW/email "$SENDER" "\"$exercise\"" "Acknowledged!"
         else
-            m "\"$exercise\"" "$MESSAGE"
+            /HW/email "$SENDER" "\"$exercise\"" "$MESSAGE"
         fi
     fi
 done

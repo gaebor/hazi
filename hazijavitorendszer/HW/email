@@ -1,0 +1,24 @@
+#!/bin/bash
+
+RECIPIENT="$1"
+SUBJECT="$2"
+
+BODY="`cat /HW/.header /home/dummy/.css /HW/.middle 2> /dev/null`"
+BODY+="$3"
+BODY+="`cat /HW/.footer`"
+
+ANSWERPASS=`head -n 2 /HW/.answer | tail -n 1`
+ANSWERUSER=`head -n 1 /HW/.answer | cut -f1 -d@`
+ANSWERSERVER=`head -n 1 /HW/.answer | cut -f2 -d@`
+
+SMTP_USER_PASS="$ANSWERPASS" mailsend-go -f "$ANSWERUSER@$ANSWERSERVER" \
+    -sub "Re: $SUBJECT" -t "$RECIPIENT" \
+    -port 587 -smtp "smtp.$ANSWERSERVER" \
+    auth -user "$ANSWERUSER" -q \
+    body -mime-type "text/html" -msg "$BODY"
+
+if [ $? -ne 0 ]
+then
+    /HW/log ERROR cannot send email to "\"$RECIPIENT\" subject \"$SUBJECT\""
+    echo "$BODY" 1>&2
+fi
