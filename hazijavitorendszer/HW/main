@@ -44,7 +44,7 @@ do
     then
         # there is no such exercise!
         /HW/log INVALID from "\"$SENDER\"" non-existent exercise "\"$exercise\""
-        /HW/email "$SENDER" "\"$exercise\"" "<span class=red>No such exercise!</span>"
+        /HW/email "$SENDER" "$exercise" "<span class=red>No such exercise!</span>"
         continue
     else
         # validate submission for this exercise
@@ -52,20 +52,20 @@ do
         if [ $? -ne 0 ]
         then
             /HW/log ERROR unable to validate submission from "\"$SENDER\"" exercise "\"$exercise\""
-            /HW/email "$SENDER" "\"$exercise\"" "<span class=orange>Server error!</span> unable to validate!"
+            /HW/email "$SENDER" "$exercise" "<span class=orange>Server error!</span> unable to validate!"
             continue
         fi
         TYPE=`head -n 1 <<<"$VALIDATEINFO"`
         if [[ ! -x "/HW/$TYPE" || " $RESERVED_NAMES " == *" $TYPE "* ]]
         then
             /HW/log ERROR exercise "\"$exercise\"" invalid type "\"$TYPE\""
-            /HW/email "$SENDER" "\"$exercise\"" "<span class=orange>Server error!</span> Cannot evaluate exercise!"
+            /HW/email "$SENDER" "$exercise" "<span class=orange>Server error!</span> Cannot evaluate exercise!"
             continue
         fi
         if [ "`head -n 2 <<<"$VALIDATEINFO" | tail -n 1`" = "reject" ]
         then
             /HW/log INVALID submission from "\"$SENDER\"" exercise "\"$exercise\""
-            /HW/email "$SENDER" "\"$exercise\"" "<span class=red>Invalid submission!</span>"
+            /HW/email "$SENDER" "$exercise" "<span class=red>Invalid submission!</span>"
             continue
         fi
         
@@ -116,9 +116,9 @@ $MESSAGE"
         fi
         if [ -z "$MESSAGE" ]
         then
-            /HW/email "$SENDER" "\"$exercise\"" "Acknowledged!"
+            /HW/email "$SENDER" "$exercise" "Acknowledged!"
         else
-            /HW/email "$SENDER" "\"$exercise\"" "$MESSAGE"
+            /HW/email "$SENDER" "$exercise" "$MESSAGE"
         fi
     fi
 done
