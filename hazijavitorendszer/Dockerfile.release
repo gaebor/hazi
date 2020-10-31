@@ -1,7 +1,8 @@
 FROM hazibase
 
-ENTRYPOINT chmod -R 550 /HW/ && \
-            (chown root:root /home/dummy/info; chown dummy:dummy /home/dummy/*.*; true)2> /dev/null && \
-           iptables -A OUTPUT -m owner --uid-owner dummy -j DROP && \
-           timeout --kill-after=10s 60s /HW/main
+ENTRYPOINT ["bash", "-c", \
+    "( chown root:root /home/dummy/info; chown dummy:dummy /home/dummy/*.* ) 2> /dev/null; iptables -A OUTPUT -m owner --uid-owner dummy -j DROP && \"$@\"", ""]
+CMD ["timeout", "--kill-after=10s", "60s", "/HW/main"]
+
 ADD HW /HW
+RUN ["chmod", "-R", "550", "/HW/"]
