@@ -7,21 +7,38 @@ then
 fi
 
 TESTRUN=""
+REBUILD=""
 
-if [ "$1" = "--help" -o "$1" = "-help" -o "$1" = "-h" ]
+help_args="-h --help"
+test_args="-t --test --dry-run"
+rebuild_args="-r --rebuild --re-build"
+
+if [[ " $help_args " == *" $1 "* ]]
 then
     echo "Entry point for hazijavitorendszer."
-    echo "USAGE:" "\`$1 [-h|--help|-t|--dry-run|--test] [directory|[file] [file] ... ] \`"
+    echo "USAGE:" "\`$1 [-h|-t|-r] [directory|[file] [file] ... ] \`"
     echo 
-    echo "Test (or dry run) does the same, with the notable exceptions:"
-    echo " * force-rebuilding the docker image"
-    echo " * without logging/archiving"
-    echo " * without email answering"
-    echo " * does not clean up incoming files"
+    echo "$help_args	Help"
+    echo "		show this message and exit"
+    echo "$test_args	Test (or dry run)"
+    echo "		Run the whole system but with some notable changes:"
+    echo "		force-rebuild the 'test' docker image"
+    echo "		write logs onto screen rather than log-files"
+    echo "		don't archive solutions"
+    echo "		email answer is not sent, rather written to stderr"
+    echo "		does not clean up incoming files"
+    echo "$rebuild_args	Rebuild"
+    echo "		force-rebuilding the 'release' docker image"
+    echo "		Test mode always rebuilds the 'test' image"
+    echo "		Rebuild mode is exclusive to Test mode and rebuilds the 'release' image only if set."
     exit
-elif [ "$1" = "--test" -o "$1" = "-t" -o "$1" = "--dry-run" ]
+elif [[ " $test_args " == *" $1 "* ]]
 then
     TESTRUN="$1"
+    shift
+elif [[ " $rebuild_args " == *" $1 "* ]]
+then
+    REBUILD="$1"
     shift
 fi
 
@@ -34,7 +51,7 @@ then
     exit 1
 fi
 
-DOCKER_LIMITS="--cpus 1 --memory 100m"
+DOCKER_CREATE="$DOCKER container create --cpus 1 --memory 100m"
 
 if [ -n "$TESTRUN" ]
 then
@@ -44,17 +61,17 @@ then
         echo 'Failed to build image!' 1>&2
         exit 1
     fi
-    container=$($DOCKER container create $DOCKER_LIMITS --network none hazi_test)
+    container=$($DOCKER_CREATE --network none hazi_test)
 else
-    if [ `$DOCKER image ls -q hazi_release | wc -l` -lt 1 ]
+    if [ `$DOCKER image ls -q hazi_release | wc -l` -lt 1 -o -n "$REBUILD" ]
     then
-        $DOCKER build -f hazijavitorendszer/Dockerfile.release -t hazi_release hazijavitorendszer > /dev/null
+        $DOCKER build -f hazijavitorendszer/Dockerfile.release -t hazi_release hazijavitorendszer
         if [ $? -ne 0 ]
         then
             exit 1
         fi
     fi
-    container=$($DOCKER container create $DOCKER_LIMITS --network bridge --cap-add NET_ADMIN hazi_release)
+    container=$($DOCKER_CREATE --network bridge --cap-add NET_ADMIN hazi_release)
 fi
 
 if [ -z "$container" ]
