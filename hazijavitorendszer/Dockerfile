@@ -15,7 +15,7 @@ RUN export PIPINSTALL="-m pip install" && \
 
 RUN dpkg -i mailsend-go.deb
 
-RUN echo 'dummy\ndummy\n' | adduser --gecos "" dummy
+RUN useradd -m dummy
 
 # maybe match the host locale?
 RUN apt -y install locales && locale-gen en_US.UTF-8 && update-locale LC_ALL=en_US.UTF-8

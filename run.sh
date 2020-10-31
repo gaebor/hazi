@@ -51,7 +51,7 @@ then
     exit 1
 fi
 
-DOCKER_CREATE="$DOCKER container create --cpus 1 --memory 100m"
+DOCKER_CREATE="$DOCKER container create"
 
 if [ -n "$TESTRUN" ]
 then

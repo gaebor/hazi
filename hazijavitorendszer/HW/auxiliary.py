@@ -14,7 +14,7 @@ def run(args, timelimit=10, input=""):
         result=subprocess.run(args,
                 timeout=timelimit,
                 preexec_fn=changeuser,
-                start_new_session=True,
+                start_new_session=False,
                 cwd="/home/dummy",
                 input=input, shell=False,
                 check=False, encoding="utf-8",
