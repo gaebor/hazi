@@ -1,6 +1,11 @@
 {
     "type": "program",
-    "command": ["/bin/bash", "-c", "c++ -std=c++11 -O2 -fno-peephole -fno-peephole2 -I. -S -o - $0 | c++filt -p | grep -A 6 '^f:' | grep movl | tail -n 1"],
+    "command": [
+        "/bin/bash",
+        "-c",
+        "echo '#include \"tmp.hpp\"' > tmp.cpp && echo \"$0\" >> tmp.cpp && c++ -std=c++11 -O2 -fno-peephole -fno-peephole2 -I. -S -o - tmp.cpp | c++filt -p | grep -A 6 '^f:' | grep movl | tail -n 1 | xargs"
+    ],
     "visible": true,
-    "course": "lecturer"
+    "course": "lecturer",
+    "description": "write a cpp header called <tt>tmp.hpp</tt> containing the definition of a variadic template class called <b>MyClass</b>:<PRE>template&lt;...&gt;\nMyClass {\n    ...\n};</PRE>\nthe class should define a <tt>static const int result;</tt> member, that is the number of variadic arguments to the class."
 }

@@ -1,5 +1,7 @@
 {
-    "argv": ["i1.cpp"],
-    "file": "i1.cpp",
-    "returncode": 0
+    "argv": [
+        "int f() { return MyClass<bool>::result; }"
+    ],
+    "returncode": 0,
+    "stdout": "movl $1, %eax"
 }

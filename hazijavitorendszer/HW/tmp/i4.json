@@ -1,0 +1,7 @@
+{
+    "argv": [
+        "int f() { return MyClass<void, int, char>::result; }"
+    ],
+    "returncode": 0,
+    "stdout": "movl $4, %eax"
+}
