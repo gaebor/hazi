@@ -10,6 +10,7 @@ jobs:
     - name: Commit readme
       run: |
         git add README.md
+        if [ ! "`git status REDME.md --short`" ]; then return; fi
         git config --global user.name 'Bot of github.com/gaebor/hazi'
         git config --global user.email 'bot-of-gaebor-hazi@users.noreply.github.com'
         git commit -m "update hash of commit `git log -n 1 --pretty=format:%H` in readme" README.md
