@@ -6,7 +6,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Update Hash
-      run: bash generate_readme.sh
+      run: bash generate_readme.sh > README.md
     - name: Commit readme
       run: |
         git add README.md
