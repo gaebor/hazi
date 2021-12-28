@@ -1,0 +1,16 @@
+name: build
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Update Hash
+      run: bash ganarate_readme.sh
+    - name: Commit report
+      run: |
+        git config --global user.name 'Your Name'
+        git config --global user.email 'your-username@users.noreply.github.com'
+        git commit -am "update hash of commit `git log -n 1 --pretty=format:%H` in readme"
+        git push
+ 
