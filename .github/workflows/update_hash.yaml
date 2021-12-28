@@ -1,4 +1,4 @@
-name: build
+name: Update Hash
 on: push
 jobs:
   build:
@@ -7,10 +7,11 @@ jobs:
     - uses: actions/checkout@v2
     - name: Update Hash
       run: bash ganarate_readme.sh
-    - name: Commit report
+    - name: Commit readme
       run: |
+        git add README.md
         git config --global user.name 'Your Name'
         git config --global user.email 'your-username@users.noreply.github.com'
-        git commit -am "update hash of commit `git log -n 1 --pretty=format:%H` in readme"
+        git commit -m "update hash of commit `git log -n 1 --pretty=format:%H` in readme" README.md
         git push
  
